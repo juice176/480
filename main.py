@@ -26,7 +26,7 @@ def displayMainCommands():
     print()
     print("REGISTRATION:")
     print("\tTo register as a client, use: reg c")
-    print("\tTo register a new manager, please log in to an existing manager account first.")
+    print("\tTo register a new manager, use: reg m")
     print()
     print("EXIT:")
     print("\tTo exit the program, use: exit")
@@ -515,12 +515,12 @@ def declareCars(driver_name):
         car_id = input().strip()
         try:
             cur.execute("""
-                INSERT INTO CAN_DRIVE (DRIVER_NAME,MODEL_ID,CAR_ID)
+                INSERT INTO CAN_DRIVE (NAME,MODEL_ID,CAR_ID)
                 VALUES(%s,%s,%s);
             """,(driver_name,model_id,car_id))
             conn.commit()
             print(f"Model {model_id} and Car{car_id} successfully declared.")
-        except psycopg2.Error() as e:
+        except psycopg2.Error as e:
             print("ERROR: ",e)
             print(f"Failed to declare Model{model_id} and Car{car_id}.")
     return
@@ -613,7 +613,7 @@ def bookCar(client_email):
                 AND EXISTS (
                     SELECT 1
                     FROM CAN_DRIVE cd
-                    WHERE cd.DRIVER_NAME = d.NAME AND cd.MODEL_ID = %s AND cd.CAR_ID = %s
+                    WHERE cd.NAME = d.NAME AND cd.MODEL_ID = %s AND cd.CAR_ID = %s
                 )
                 LIMIT 1;
             """, (rent_date, model_id, car_id))
@@ -845,12 +845,28 @@ while True:
             if input().strip().lower() != "yes":
                 break
 
+    if command == "reg m":
+        print("Please provide your name: ", end="")
+        name = input().strip()
+        print("Please provide your ssn: ",end="")
+        ssn = input().strip()
+        print("Please provide your email: ",end="")
+        email = input().strip()
+        cur.execute("SET search_path TO taxi_management;")
+        try:
+            cur.execute("INSERT INTO MANAGER VALUES(%s,%s,%s)",(name,ssn,email,))
+            conn.commit()
+            print("Manager added successfully")
+        except psycopg2.Error as e:
+            print("Error: ",e)
+            conn.rollback()
+            
 
 
     if command == "login m":
         print("Please provide your SSN (without the dashes): ", end = '')
         inSSN = input()
-        
+        cur.execute("SET search_path TO taxi_management;")
         try:
             cur.execute("SELECT * FROM MANAGER WHERE SSN = %s;", (inSSN,))
             manager = cur.fetchone()
